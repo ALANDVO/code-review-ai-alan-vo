@@ -1,0 +1,79 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: code-review-backend:latest
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      ENV: "development"
+      DEMO_MODE: "false"
+      PORT: "8000"
+      HOST: "0.0.0.0"
+      DATABASE_PATH: "/app/data/code_review.db"
+      OIDC_ISSUER: "http://127.0.0.1:8080/realms/code-review-realm"
+      OIDC_AUDIENCE: "code-review-client"
+      OIDC_JWKS_URL: "http://keycloak:8080/realms/code-review-realm/protocol/openid-connect/certs"
+      LLM_API_KEY: "${LLM_API_KEY:-}"
+      LLM_PROVIDER: "${LLM_PROVIDER:-openai}"
+      LLM_MODEL: "${LLM_MODEL:-gpt-4o}"
+      LLM_BASE_URL: "${LLM_BASE_URL:-https://api.openai.com/v1}"
+    volumes:
+      - backend_data:/app/data
+    restart: unless-stopped
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_KEYCLOAK_URL: "${VITE_KEYCLOAK_URL:-http://127.0.0.1:8080}"
+        VITE_KEYCLOAK_REALM: "${VITE_KEYCLOAK_REALM:-code-review-realm}"
+        VITE_KEYCLOAK_CLIENT_ID: "${VITE_KEYCLOAK_CLIENT_ID:-code-review-client}"
+    image: code-review-frontend:latest
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin_local_password
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+      - keycloak_data:/opt/keycloak/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080; echo $$?"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+volumes:
+  backend_data:
+  keycloak_data:

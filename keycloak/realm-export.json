@@ -1,0 +1,74 @@
+{
+  "realm": "code-review-realm",
+  "enabled": true,
+  "displayName": "Code Review AI Authentication Realm",
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Administrator role with full access"
+      },
+      {
+        "name": "operator",
+        "description": "Operator/analyst role with review and scan execution rights"
+      },
+      {
+        "name": "viewer",
+        "description": "Read-only access to reviews, metrics and reports"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "code-review-client",
+      "name": "Code Review Web Client",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://127.0.0.1:3000/*",
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:3000",
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://127.0.0.1:3000/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "code-review-client",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "enterprise-saml-idp",
+      "displayName": "Enterprise SAML Identity Provider",
+      "providerId": "saml",
+      "enabled": false,
+      "trustEmail": true,
+      "storeToken": false,
+      "config": {
+        "entityId": "http://127.0.0.1:8080/realms/code-review-realm",
+        "singleSignOnServiceUrl": "https://saml.example.com/sso",
+        "nameIDPolicyFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+        "signatureAlgorithm": "RSA_SHA256"
+      }
+    }
+  ]
+}

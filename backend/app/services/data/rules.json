@@ -1,0 +1,343 @@
+[
+  {
+    "rule_id": "SEC001",
+    "pat": "\\beval\\s*\\(",
+    "sev": "critical",
+    "cat": "security",
+    "msg": "Use of eval() executes arbitrary code; severe code injection risk.",
+    "sug": "Replace with ast.literal_eval() for data, or eliminate eval entirely.",
+    "cwe": "CWE-95",
+    "langs": [],
+    "suppress": null
+  },
+  {
+    "rule_id": "SEC002",
+    "pat": "\\bexec\\s*\\(",
+    "sev": "high",
+    "cat": "security",
+    "msg": "exec() with untrusted input is a command injection vector.",
+    "sug": "Validate and sanitize input; prefer subprocess with argument list.",
+    "cwe": "CWE-78",
+    "langs": [],
+    "suppress": null
+  },
+  {
+    "rule_id": "SEC003",
+    "pat": "os\\.system\\s*\\(",
+    "sev": "high",
+    "cat": "security",
+    "msg": "os.system() passes a shell string; vulnerable to shell injection.",
+    "sug": "Use subprocess.run([...], check=True) with explicit argument list.",
+    "cwe": "CWE-78",
+    "langs": [
+      "python"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "SEC004",
+    "pat": "\\bpickle\\.(load|loads|dump|dumps)\\s*\\(",
+    "sev": "critical",
+    "cat": "security",
+    "msg": "Deserializing untrusted pickle data allows arbitrary code execution.",
+    "sug": "Use JSON/msgpack for untrusted data; restrict pickle to trusted sources.",
+    "cwe": "CWE-502",
+    "langs": [
+      "python"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "SEC005",
+    "pat": "\\bmd5\\s*\\(|\\bhashlib\\.md5\\b",
+    "sev": "medium",
+    "cat": "security",
+    "msg": "MD5 is cryptographically broken; unsuitable for security-sensitive hashing.",
+    "sug": "Use hashlib.sha256() or hashlib.sha3_256() for security contexts.",
+    "cwe": "CWE-327",
+    "langs": [],
+    "suppress": null
+  },
+  {
+    "rule_id": "SEC006",
+    "pat": "\\bsha1\\s*\\(|\\bhashlib\\.sha1\\b",
+    "sev": "medium",
+    "cat": "security",
+    "msg": "SHA-1 is deprecated for security use.",
+    "sug": "Use SHA-256 or stronger.",
+    "cwe": "CWE-327",
+    "langs": [],
+    "suppress": null
+  },
+  {
+    "rule_id": "SEC007",
+    "pat": "(password|secret|api_key|token)\\s*=\\s*['\\\"][^'\\\"]{4,}['\\\"]",
+    "sev": "critical",
+    "cat": "security",
+    "msg": "Hardcoded credential literal detected; credentials must not appear in source.",
+    "sug": "Load credentials from environment variables or a secrets manager.",
+    "cwe": "CWE-798",
+    "langs": [],
+    "suppress": null
+  },
+  {
+    "rule_id": "SEC008",
+    "pat": "random\\.(random|randint|choice|shuffle)\\s*\\(",
+    "sev": "medium",
+    "cat": "security",
+    "msg": "random module is not cryptographically secure.",
+    "sug": "Use secrets module for cryptographic tokens and nonces.",
+    "cwe": "CWE-338",
+    "langs": [
+      "python"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "SEC009",
+    "pat": "subprocess\\.(run|call|check_output)\\s*\\([^)]*shell\\s*=\\s*True",
+    "sev": "high",
+    "cat": "security",
+    "msg": "subprocess with shell=True and variable input is vulnerable to shell injection.",
+    "sug": "Pass command as a list and omit shell=True.",
+    "cwe": "CWE-78",
+    "langs": [
+      "python"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "SEC010",
+    "pat": "\\binnerHTML\\s*=",
+    "sev": "high",
+    "cat": "security",
+    "msg": "Assigning to innerHTML without sanitization causes XSS.",
+    "sug": "Use textContent for plain text, or DOMPurify for HTML sanitization.",
+    "cwe": "CWE-79",
+    "langs": [
+      "javascript",
+      "typescript"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "SEC011",
+    "pat": "document\\.write\\s*\\(",
+    "sev": "high",
+    "cat": "security",
+    "msg": "document.write() with untrusted data is an XSS vector.",
+    "sug": "Use DOM manipulation methods (createElement, appendChild).",
+    "cwe": "CWE-79",
+    "langs": [
+      "javascript",
+      "typescript"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "SEC012",
+    "pat": "dangerouslySetInnerHTML",
+    "sev": "high",
+    "cat": "security",
+    "msg": "dangerouslySetInnerHTML without sanitization allows XSS injection.",
+    "sug": "Sanitize with DOMPurify before passing to dangerouslySetInnerHTML.",
+    "cwe": "CWE-79",
+    "langs": [
+      "javascript",
+      "typescript"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "SEC013",
+    "pat": "\\bfmt\\.Sprintf\\s*\\(.*%s.*,\\s*r\\.",
+    "sev": "high",
+    "cat": "security",
+    "msg": "Possible SQL injection via fmt.Sprintf with request data.",
+    "sug": "Use parameterized queries with database/sql placeholders.",
+    "cwe": "CWE-89",
+    "langs": [
+      "go"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "BUG001",
+    "pat": "except\\s*:",
+    "sev": "medium",
+    "cat": "bug",
+    "msg": "Bare except clause catches all exceptions including SystemExit and KeyboardInterrupt.",
+    "sug": "Catch specific exceptions: except (ValueError, OSError) as e.",
+    "cwe": null,
+    "langs": [
+      "python"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "BUG002",
+    "pat": "except\\s+Exception\\s*:",
+    "sev": "low",
+    "cat": "bug",
+    "msg": "Catching Exception silently swallows unexpected errors.",
+    "sug": "Log the exception or re-raise after cleanup.",
+    "cwe": null,
+    "langs": [
+      "python"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "BUG003",
+    "pat": "==\\s*None|None\\s*==",
+    "sev": "low",
+    "cat": "bug",
+    "msg": "Comparison with None using == instead of identity check.",
+    "sug": "Use 'is None' or 'is not None'.",
+    "cwe": null,
+    "langs": [
+      "python"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "BUG004",
+    "pat": "assert\\s+.+,?\\s*#",
+    "sev": "low",
+    "cat": "bug",
+    "msg": "assert statements are stripped with -O; do not use for runtime validation.",
+    "sug": "Replace with explicit if/raise for production validation.",
+    "cwe": null,
+    "langs": [
+      "python"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "BUG005",
+    "pat": "\\bconsole\\.log\\s*\\(",
+    "sev": "low",
+    "cat": "bug",
+    "msg": "console.log left in production code; may expose sensitive data.",
+    "sug": "Remove debug logs or use a structured logger with level control.",
+    "cwe": null,
+    "langs": [
+      "javascript",
+      "typescript"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "BUG006",
+    "pat": "\\bvar\\s+\\w+\\s*=",
+    "sev": "low",
+    "cat": "style",
+    "msg": "var has function scope and hoisting behaviour; use const/let.",
+    "sug": "Replace var with const (immutable binding) or let (rebindable).",
+    "cwe": null,
+    "langs": [
+      "javascript",
+      "typescript"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "BUG007",
+    "pat": "===\\s*null\\b.*&&|&&.*===\\s*null\\b",
+    "sev": "low",
+    "cat": "bug",
+    "msg": "Multiple null checks may indicate missing null coalescing.",
+    "sug": "Consider optional chaining (?.) or nullish coalescing (??).",
+    "cwe": null,
+    "langs": [
+      "javascript",
+      "typescript"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "PERF001",
+    "pat": "for\\s+\\w+\\s+in\\s+range\\s*\\(.+\\)\\s*:\\s*\\n\\s+for\\s+\\w+\\s+in\\s+range",
+    "sev": "medium",
+    "cat": "performance",
+    "msg": "Nested range loops detected; may indicate O(n\u00b2) complexity.",
+    "sug": "Consider vectorised operations (numpy) or data-structure optimisation.",
+    "cwe": null,
+    "langs": [
+      "python"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "PERF002",
+    "pat": "\\+\\s*=\\s*['\\\"]|\\\"\\s*\\+\\s*['\\\"]|\\'\\s*\\+\\s*['\\\"]",
+    "sev": "low",
+    "cat": "performance",
+    "msg": "String concatenation in a loop creates many intermediate objects.",
+    "sug": "Use ''.join(parts) or f-strings for efficient string building.",
+    "cwe": null,
+    "langs": [
+      "python"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "PERF003",
+    "pat": "SELECT\\s+\\*\\s+FROM",
+    "sev": "medium",
+    "cat": "performance",
+    "msg": "SELECT * fetches all columns; specify only needed columns.",
+    "sug": "List explicit columns: SELECT id, name, created_at FROM ...",
+    "cwe": null,
+    "langs": [],
+    "suppress": null
+  },
+  {
+    "rule_id": "PERF004",
+    "pat": "time\\.sleep\\s*\\(\\d+\\)",
+    "sev": "low",
+    "cat": "performance",
+    "msg": "Blocking sleep in synchronous code; may stall the event loop.",
+    "sug": "Use asyncio.sleep() in async contexts or a task queue for long waits.",
+    "cwe": null,
+    "langs": [
+      "python"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "MAINT001",
+    "pat": "#\\s*TODO|#\\s*FIXME|#\\s*HACK|//\\s*TODO|//\\s*FIXME",
+    "sev": "low",
+    "cat": "maintainability",
+    "msg": "TODO/FIXME comment indicates unfinished work.",
+    "sug": "Resolve or track in an issue tracker before merging.",
+    "cwe": null,
+    "langs": [],
+    "suppress": null
+  },
+  {
+    "rule_id": "MAINT002",
+    "pat": "def\\s+\\w+\\([^)]{120,}\\)",
+    "sev": "low",
+    "cat": "maintainability",
+    "msg": "Function signature is very long; consider using a data class or TypedDict.",
+    "sug": "Group related parameters into a structured type.",
+    "cwe": null,
+    "langs": [
+      "python"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "MAINT003",
+    "pat": "^.{120,}$",
+    "sev": "low",
+    "cat": "style",
+    "msg": "Line exceeds 120 characters; reduces readability.",
+    "sug": "Break long expressions across multiple lines.",
+    "cwe": null,
+    "langs": [],
+    "suppress": null
+  }
+]
