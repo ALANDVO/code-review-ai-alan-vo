@@ -1,5 +1,7 @@
 # Code Review AI — Alan Vo | AI & Machine Learning
 
+Current version: `1.0.0`.
+
 Code Review AI helps developers triage risky source code and unified diffs. A deterministic Python AST and pattern engine produces line-level findings; optional LLM advice explains those findings. The React dashboard stores reviews, supports filtered history and JSON exports, and exposes a reproducible rule benchmark.
 
 ## Architecture

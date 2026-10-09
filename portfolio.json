@@ -16,5 +16,6 @@
     "gemini",
     "ollama"
   ],
-  "summary": "Multi-language static analysis and LLM-assisted code review engine with empirical defect detection benchmarking and Keycloak OIDC/SAML authentication."
+  "summary": "Multi-language static analysis and LLM-assisted code review engine with empirical defect detection benchmarking and Keycloak OIDC/SAML authentication.",
+  "version": "1.0.0"
 }

@@ -1,5 +1,7 @@
 # Changelog
 
+## [1.0.0] - 2026-10-09
+
 ## Unreleased
 
 - Add a modular FastAPI backend and React dashboard for stored code reviews, deterministic security findings, and reproducible rule evaluation.
