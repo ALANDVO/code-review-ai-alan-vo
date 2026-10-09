@@ -11,5 +11,9 @@ build/
 .mypy_cache/
 *.log
 .DS_Store
+*.db
+*.sqlite
+.antigravitycli/
+.omp/
 frontend/node_modules/
 frontend/dist/

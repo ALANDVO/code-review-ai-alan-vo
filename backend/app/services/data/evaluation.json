@@ -1,0 +1,256 @@
+[
+  {
+    "sample_id": "PY-SEC-001",
+    "language": "python",
+    "description": "eval() with user input \u2014 code injection",
+    "code": "def compute(expr):\n    return eval(expr)\n",
+    "expected_rule_ids": [
+      "SEC001"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-SEC-002",
+    "language": "python",
+    "description": "pickle.loads with network data",
+    "code": "import pickle\ndef deserialize(data):\n    return pickle.loads(data)\n",
+    "expected_rule_ids": [
+      "SEC004"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-SEC-003",
+    "language": "python",
+    "description": "os.system shell injection surface",
+    "code": "import os\ndef run(cmd):\n    os.system(cmd)\n",
+    "expected_rule_ids": [
+      "SEC003"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-SEC-004",
+    "language": "python",
+    "description": "subprocess with shell=True",
+    "code": "import subprocess\ndef execute(cmd):\n    subprocess.run(cmd, shell=True)\n",
+    "expected_rule_ids": [
+      "SEC009"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-SEC-005",
+    "language": "python",
+    "description": "MD5 for security context",
+    "code": "import hashlib\ndef hash_pw(pw):\n    return hashlib.md5(pw.encode()).hexdigest()\n",
+    "expected_rule_ids": [
+      "SEC005"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-BUG-001",
+    "language": "python",
+    "description": "Bare except clause",
+    "code": "def safe():\n    try:\n        risky()\n    except:\n        pass\n",
+    "expected_rule_ids": [
+      "BUG001"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-BUG-002",
+    "language": "python",
+    "description": "None comparison with ==",
+    "code": "def check(x):\n    if x == None:\n        return False\n    return True\n",
+    "expected_rule_ids": [
+      "BUG003"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-PERF-001",
+    "language": "python",
+    "description": "SELECT * in raw SQL query",
+    "code": "def get_users(db):\n    return db.execute(\"SELECT * FROM users\")\n",
+    "expected_rule_ids": [
+      "PERF003"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "JS-SEC-001",
+    "language": "javascript",
+    "description": "innerHTML assignment \u2014 XSS",
+    "code": "function render(data) {\n  element.innerHTML = data.html;\n}\n",
+    "expected_rule_ids": [
+      "SEC010"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "JS-SEC-002",
+    "language": "javascript",
+    "description": "document.write with user data",
+    "code": "function show(msg) {\n  document.write(msg);\n}\n",
+    "expected_rule_ids": [
+      "SEC011"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "JS-SEC-003",
+    "language": "javascript",
+    "description": "dangerouslySetInnerHTML without sanitization",
+    "code": "function Comp({html}) {\n  return <div dangerouslySetInnerHTML={{__html: html}} />;\n}\n",
+    "expected_rule_ids": [
+      "SEC012"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "JS-BUG-001",
+    "language": "javascript",
+    "description": "var declaration (hoisting)",
+    "code": "function foo() {\n  var x = 1;\n  return x;\n}\n",
+    "expected_rule_ids": [
+      "BUG006"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "JS-BUG-002",
+    "language": "javascript",
+    "description": "console.log in production code",
+    "code": "function process(data) {\n  console.log(data);\n  return data;\n}\n",
+    "expected_rule_ids": [
+      "BUG005"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-MAINT-001",
+    "language": "python",
+    "description": "TODO comment",
+    "code": "def compute():\n    # TODO: implement this properly\n    return 0\n",
+    "expected_rule_ids": [
+      "MAINT001"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-CLEAN-001",
+    "language": "python",
+    "description": "Clean function \u2014 no issues expected",
+    "code": "from typing import List\n\ndef sum_positives(numbers: List[int]) -> int:\n    \"\"\"Return sum of positive integers.\"\"\"\n    return sum(n for n in numbers if n > 0)\n",
+    "expected_rule_ids": [],
+    "forbidden_rule_ids": [
+      "SEC001",
+      "SEC004",
+      "BUG001"
+    ]
+  },
+  {
+    "sample_id": "PY-CLEAN-002",
+    "language": "python",
+    "description": "Clean exception handling",
+    "code": "def read_file(path: str) -> str:\n    try:\n        with open(path) as f:\n            return f.read()\n    except OSError as exc:\n        raise RuntimeError(f\"Cannot read {path}\") from exc\n",
+    "expected_rule_ids": [],
+    "forbidden_rule_ids": [
+      "BUG001",
+      "BUG002"
+    ]
+  },
+  {
+    "sample_id": "PY-SEC-006",
+    "language": "python",
+    "description": "exec() call",
+    "code": "def run_code(code_str):\n    exec(code_str)\n",
+    "expected_rule_ids": [
+      "SEC002"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-SEC-007",
+    "language": "python",
+    "description": "random for security token",
+    "code": "import random\ndef make_token():\n    return random.choice(\"abcdefghijklmnop\")\n",
+    "expected_rule_ids": [
+      "SEC008"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-BUG-003",
+    "language": "python",
+    "description": "Exception swallowed silently",
+    "code": "def safe():\n    try:\n        op()\n    except Exception:\n        pass\n",
+    "expected_rule_ids": [
+      "BUG002"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "JS-CLEAN-001",
+    "language": "javascript",
+    "description": "Clean JS with const and no risky patterns",
+    "code": "const API_URL = \"/api/v1\";\n\nasync function fetchUser(id) {\n  const resp = await fetch(`${API_URL}/users/${id}`);\n  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);\n  return resp.json();\n}\n",
+    "expected_rule_ids": [],
+    "forbidden_rule_ids": [
+      "BUG006",
+      "SEC010"
+    ]
+  },
+  {
+    "sample_id": "PY-PERF-002",
+    "language": "python",
+    "description": "String concat in loop",
+    "code": "def join(items):\n    result = \"\"\n    for item in items:\n        result += item\n    return result\n",
+    "expected_rule_ids": [
+      "PERF002"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-CLEAN-003",
+    "language": "python",
+    "description": "Proper None identity check",
+    "code": "def check(x):\n    if x is None:\n        return \"missing\"\n    return str(x)\n",
+    "expected_rule_ids": [],
+    "forbidden_rule_ids": [
+      "BUG003"
+    ]
+  },
+  {
+    "sample_id": "PY-SHA1-001",
+    "language": "python",
+    "description": "SHA-1 for signature verification",
+    "code": "import hashlib\ndef verify(data):\n    return hashlib.sha1(data).hexdigest()\n",
+    "expected_rule_ids": [
+      "SEC006"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-SLEEP-001",
+    "language": "python",
+    "description": "Blocking sleep in main code path",
+    "code": "import time\ndef wait_for_ready():\n    time.sleep(5)\n",
+    "expected_rule_ids": [
+      "PERF004"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "PY-CLEAN-004",
+    "language": "python",
+    "description": "Proper secrets usage",
+    "code": "import secrets\ndef make_token() -> str:\n    return secrets.token_urlsafe(32)\n",
+    "expected_rule_ids": [],
+    "forbidden_rule_ids": [
+      "SEC008"
+    ]
+  }
+]

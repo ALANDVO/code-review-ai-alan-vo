@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "name": "code-review-ai-alan-vo",
+  "owner": "ALANDVO",
+  "email": "alanvo@gmail.com",
+  "domain": "code-review-ai",
+  "workflows": [
+    "Multi-language code review with deterministic AST parsing, static rule heuristics, and advisory LLM synthesis",
+    "Automated vulnerability detection and CWE taxonomy risk scoring across diffs and source files",
+    "Reproducible benchmark evaluation measuring review precision, recall, and F1 against ground-truth defect datasets"
+  ],
+  "auth": "oidc-keycloak-saml-broker",
+  "llm_providers": [
+    "openai-compatible",
+    "anthropic",
+    "gemini",
+    "ollama"
+  ],
+  "summary": "Multi-language static analysis and LLM-assisted code review engine with empirical defect detection benchmarking and Keycloak OIDC/SAML authentication."
+}
