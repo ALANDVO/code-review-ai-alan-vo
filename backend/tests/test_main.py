@@ -446,3 +446,145 @@ def test_signed_oidc_tokens_use_app_settings_and_required_claims(test_settings, 
     with patch.object(auth, '_get_jwks', side_effect=keys), TestClient(create_app(config)) as client:
         response = client.get('/api/reviews', headers={'Authorization': 'Bearer ' + token})
         assert response.status_code == (200 if mutation == 'none' else 401)
+
+
+def test_security_scan_scopes_focus_to_security(client):
+    resp = client.post(
+        "/api/reviews",
+        json={
+            "title": "Security scan only",
+            "language": "python",
+            "review_type": "security_scan",
+            "focus_areas": "all",
+            "code_snippet": "def f(x):\n    return eval(x)\n",
+            "use_llm_advisory": False,
+        },
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["focus_areas"] == "security"
+    assert all(f["category"] == "security" for f in body["findings"])
+    assert any(f["rule_id"] == "SEC001" for f in body["findings"])
+
+
+def test_list_reviews_search_and_severity_filters(client):
+    client.post(
+        "/api/reviews",
+        json={
+            "title": "Auth token parser",
+            "language": "python",
+            "review_type": "full_file",
+            "focus_areas": "all",
+            "code_snippet": "result = eval(payload)\n",
+        },
+    )
+    client.post(
+        "/api/reviews",
+        json={
+            "title": "Simple helper",
+            "language": "python",
+            "review_type": "full_file",
+            "focus_areas": "all",
+            "code_snippet": "def add(a: int, b: int):\n    return a + b\n",
+        },
+    )
+
+    by_search = client.get("/api/reviews", params={"search": "token parser"})
+    assert by_search.status_code == 200
+    assert by_search.json()["total"] == 1
+    assert by_search.json()["items"][0]["title"] == "Auth token parser"
+
+    by_code_search = client.get("/api/reviews", params={"search": "eval(payload)"})
+    assert by_code_search.status_code == 200
+    assert by_code_search.json()["total"] == 1
+
+    by_critical = client.get("/api/reviews", params={"severity": "critical"})
+    assert by_critical.status_code == 200
+    assert by_critical.json()["total"] == 1
+    assert by_critical.json()["items"][0]["critical_count"] >= 1
+
+
+@pytest.mark.parametrize("provider", ["openai", "anthropic", "gemini", "ollama"])
+def test_llm_advisor_adapters_and_error_redaction(test_settings, provider):
+    from dataclasses import replace
+    from app.services.llm_advisor import _redact, enrich_with_advisory
+
+    synthetic_token = "sk-" + ("0" * 24)
+    assert "[REDACTED]" in _redact(f"Auth error for {synthetic_token}")
+    assert synthetic_token not in _redact(f"Auth error for {synthetic_token}")
+
+    finding = Finding(
+        line_number=1,
+        severity="critical",
+        category="security",
+        message="Use of eval()",
+        suggestion="Avoid eval",
+        rule_id="SEC001",
+        cwe="CWE-95",
+    )
+    note_json = json.dumps([{"rule_id": "SEC001", "advisory_note": f"Reviewed via {provider}"}])
+    if provider == "anthropic":
+        mock_payload = {"content": [{"text": note_json}]}
+    elif provider == "gemini":
+        mock_payload = {"candidates": [{"content": {"parts": [{"text": note_json}]}}]}
+    else:
+        mock_payload = {"choices": [{"message": {"content": note_json}}]}
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status.return_value = None
+    mock_resp.json.return_value = mock_payload
+
+    cfg = replace(
+        test_settings,
+        llm_provider=provider,
+        llm_api_key="" if provider == "ollama" else "configured-key",
+    )
+    with patch("httpx.Client.post", return_value=mock_resp):
+        enriched, used_provider = enrich_with_advisory([finding], "eval(x)", "python", cfg)
+    assert used_provider == provider
+    assert enriched[0].advisory_note == f"Reviewed via {provider}"
+
+
+def test_admin_eval_pagination_and_audit_logs(test_settings):
+    from dataclasses import replace
+    from datetime import datetime, timezone
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.primitives import serialization
+    from jose import jwt, jwk
+    from app.core import auth
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    private = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
+    public = key.public_key().public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
+    config = replace(test_settings, demo_mode=False)
+    now = int(datetime.now(timezone.utc).timestamp())
+    admin_token = jwt.encode(
+        {
+            "iss": config.oidc_issuer,
+            "aud": config.oidc_audience,
+            "sub": "admin-user",
+            "exp": now + 60,
+            "iat": now,
+            "realm_access": {"roles": ["admin"]},
+        },
+        private,
+        algorithm="RS256",
+    )
+    jwks_data = {"keys": [jwk.construct(public, "RS256").to_dict()]}
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    with patch.object(auth, "_get_jwks", return_value=jwks_data), TestClient(create_app(config)) as c:
+        r1 = c.post("/api/evals", json={"trigger": "ci-1"}, headers=headers)
+        r2 = c.post("/api/evals", json={"trigger": "ci-2"}, headers=headers)
+        assert r1.status_code == 201
+        assert r2.status_code == 201
+
+        paged = c.get("/api/evals?limit=1&offset=0", headers=headers)
+        assert paged.status_code == 200
+        assert len(paged.json()["items"]) == 1
+        assert paged.json()["total"] == 2
+
+        audit = c.get("/api/audit", headers=headers)
+        assert audit.status_code == 200
+        assert len(audit.json()) >= 2
+

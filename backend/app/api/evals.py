@@ -43,7 +43,8 @@ async def list_eval_runs(
 ) -> EvalRunListOut:
     db = request.app.state.db
     items = db.list_eval_runs(limit=limit, offset=offset)
-    return EvalRunListOut(items=[EvalRunOut(**r) for r in items], total=len(items))
+    total = db.count_eval_runs()
+    return EvalRunListOut(items=[EvalRunOut(**r) for r in items], total=total)
 
 
 @router.get("/{run_id}", response_model=EvalRunOut)

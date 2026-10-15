@@ -12,6 +12,8 @@ from app.models.schemas import (
     ReviewListOut,
     ReviewOut,
     ReviewRequest,
+    ReviewType,
+    Severity,
     FindingOut,
 )
 from app.services.analyzer import analyze_code, analyze_diff
@@ -54,13 +56,18 @@ async def submit_review(
     db = request.app.state.db
     now = _utc_now()
     review_id = str(uuid.uuid4())
+    effective_focus = (
+        "security"
+        if body.review_type == ReviewType.security_scan and body.focus_areas == "all"
+        else body.focus_areas
+    )
 
     # Run deterministic analysis
-    if body.review_type == "diff" and body.diff_text:
-        findings, latency_ms = analyze_diff(body.diff_text, body.language.value, body.focus_areas)
+    if body.review_type == ReviewType.diff and body.diff_text:
+        findings, latency_ms = analyze_diff(body.diff_text, body.language.value, effective_focus)
         code_for_review = body.diff_text
     else:
-        findings, latency_ms = analyze_code(body.code_snippet, body.language.value, body.focus_areas)
+        findings, latency_ms = analyze_code(body.code_snippet, body.language.value, effective_focus)
         code_for_review = body.code_snippet
 
     provider = "offline-engine"
@@ -82,7 +89,7 @@ async def submit_review(
         "title": body.title,
         "language": body.language.value,
         "review_type": body.review_type.value,
-        "focus_areas": body.focus_areas,
+        "focus_areas": effective_focus,
         "code_snippet": body.code_snippet[:50_000],
         "diff_text": body.diff_text,
         "advisory_llm_used": llm_used,
@@ -122,11 +129,20 @@ async def list_reviews(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     language: Optional[str] = Query(default=None),
+    search: Optional[str] = Query(default=None, max_length=200),
+    severity: Optional[Severity] = Query(default=None),
     principal: Principal = Depends(require_viewer),
 ) -> ReviewListOut:
     db = request.app.state.db
-    items = db.list_reviews(limit=limit, offset=offset, language=language)
-    total = db.count_reviews(language=language)
+    sev_val = severity.value if severity else None
+    items = db.list_reviews(
+        limit=limit,
+        offset=offset,
+        language=language,
+        search=search,
+        severity=sev_val,
+    )
+    total = db.count_reviews(language=language, search=search, severity=sev_val)
     return ReviewListOut(
         items=[ReviewOut(**r) for r in items],
         total=total,

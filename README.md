@@ -1,5 +1,8 @@
 # Code Review AI — Alan Vo | AI & Machine Learning
 
+> Work in progress. This checkpoint may be incomplete or fail tests. See PLAN.md and STATUS.md before use.
+
+
 Current version: `1.0.0`.
 
 Code Review AI helps developers triage risky source code and unified diffs. A deterministic Python AST and pattern engine produces line-level findings; optional LLM advice explains those findings. The React dashboard stores reviews, supports filtered history and JSON exports, and exposes a reproducible rule benchmark.
@@ -35,7 +38,7 @@ npm ci
 npm run dev
 ```
 
-Open http://127.0.0.1:3000. Demo access is local-only and has the operator role. Submit Python such as `eval(user_input)`, inspect the finding and suggested remediation, open review history, and export the result. Deleting reviews and running saved evaluations require an administrator. Demo mode is refused for production or a non-loopback configured host.
+Open http://127.0.0.1:3000. Demo access is local-only and has the operator role. Submit or import Python such as `eval(user_input)`, inspect the finding and suggested remediation, filter review history by search query, severity, or language, and export the result. Running saved evaluations and viewing the audit trail require an administrator. Demo mode is refused for production or a non-loopback configured host.
 
 The original CLI remains in `main.py`; install the original `requirements.txt` for that interface and run `python main.py --help`. Its provider configuration is separate from the web server.
 
@@ -74,10 +77,11 @@ Interactive schema: http://127.0.0.1:8000/docs in development. Send `Authorizati
 |---|---|---|
 | `GET /api/health` | Health and demo status | Public |
 | `POST /api/reviews` | Analyze and persist a source file or diff | Operator |
-| `GET /api/reviews?limit=20&offset=0&language=python` | Paginated review history | Viewer |
+| `GET /api/reviews?limit=20&offset=0&language=python&severity=critical&search=eval` | Paginated, filtered review history | Viewer |
 | `GET /api/reviews/{id}` | Review and line-level findings | Viewer |
-| `DELETE /api/reviews/{id}` | Delete review and findings | Admin |
+| `DELETE /api/reviews/{id}` | Delete review and findings | Operator |
 | `GET /api/stats` | Review/finding counts | Viewer |
+| `GET /api/audit` | Audit log entries | Admin |
 | `POST /api/evals` | Run and save local benchmark | Admin |
 | `GET /api/evals` | Saved benchmark runs | Viewer |
 | `GET /api/evals/{id}` | Benchmark evidence | Viewer |

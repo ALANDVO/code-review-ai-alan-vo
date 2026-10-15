@@ -38,6 +38,30 @@ export function SubmitReviewPage() {
     }
   };
 
+  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+    const langMap: Record<string, string> = {
+      py: 'python',
+      js: 'javascript',
+      jsx: 'javascript',
+      ts: 'typescript',
+      tsx: 'typescript',
+      go: 'go',
+      rs: 'rust',
+    };
+    const isDiff = ext === 'diff' || ext === 'patch';
+    setForm(f => ({
+      ...f,
+      title: f.title || `Import: ${file.name}`,
+      language: langMap[ext] ?? f.language,
+      review_type: isDiff ? 'diff' : f.review_type,
+      code_snippet: text,
+    }));
+  };
+
   const handleExport = () => {
     if (!result) return;
     const json = JSON.stringify(result, null, 2);
@@ -91,7 +115,14 @@ export function SubmitReviewPage() {
                   <select id="review-type"
                     className="form-select"
                     value={form.review_type}
-                    onChange={e => setForm(f => ({ ...f, review_type: e.target.value }))}
+                    onChange={e => {
+                      const nextType = e.target.value;
+                      setForm(f => ({
+                        ...f,
+                        review_type: nextType,
+                        focus_areas: nextType === 'security_scan' ? 'security' : f.focus_areas,
+                      }));
+                    }}
                   >
                     {REVIEW_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -107,6 +138,18 @@ export function SubmitReviewPage() {
                     {FOCUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="review-file-import">Import Source or Diff File</label>
+                <input
+                  id="review-file-import"
+                  aria-label="Import source or diff file"
+                  type="file"
+                  accept=".py,.js,.jsx,.ts,.tsx,.go,.rs,.diff,.patch,.txt"
+                  onChange={handleFileImport}
+                  className="form-input"
+                />
               </div>
 
               <div className="form-group">

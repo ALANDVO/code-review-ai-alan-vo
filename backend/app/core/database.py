@@ -187,26 +187,58 @@ class Database:
             review["findings"] = [dict(f) for f in f_cur.fetchall()]
             return review
 
-    def list_reviews(self, limit: int = 50, offset: int = 0, language: Optional[str] = None) -> List[Dict[str, Any]]:
+    def _review_where_clause(
+        self,
+        language: Optional[str] = None,
+        search: Optional[str] = None,
+        severity: Optional[str] = None,
+    ) -> tuple[str, List[Any]]:
+        clauses: List[str] = []
+        params: List[Any] = []
+        if language:
+            clauses.append("language = ?")
+            params.append(language.lower())
+        if search and search.strip():
+            term = f"%{search.strip().lower()}%"
+            clauses.append("(LOWER(title) LIKE ? OR LOWER(code_snippet) LIKE ?)")
+            params.extend([term, term])
+        if severity:
+            sev_col = {
+                "critical": "critical_count",
+                "high": "high_count",
+                "medium": "medium_count",
+                "low": "low_count",
+            }.get(severity.lower())
+            if sev_col:
+                clauses.append(f"{sev_col} > 0")
+        where_sql = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        return where_sql, params
+
+    def list_reviews(
+        self,
+        limit: int = 50,
+        offset: int = 0,
+        language: Optional[str] = None,
+        search: Optional[str] = None,
+        severity: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        where_sql, params = self._review_where_clause(language=language, search=search, severity=severity)
         with self.transaction() as conn:
-            if language:
-                cur = conn.execute(
-                    "SELECT * FROM reviews WHERE language = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
-                    (language.lower(), limit, offset),
-                )
-            else:
-                cur = conn.execute(
-                    "SELECT * FROM reviews ORDER BY created_at DESC LIMIT ? OFFSET ?",
-                    (limit, offset),
-                )
+            cur = conn.execute(
+                f"SELECT * FROM reviews{where_sql} ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                (*params, limit, offset),
+            )
             return [dict(r) for r in cur.fetchall()]
 
-    def count_reviews(self, language: Optional[str] = None) -> int:
+    def count_reviews(
+        self,
+        language: Optional[str] = None,
+        search: Optional[str] = None,
+        severity: Optional[str] = None,
+    ) -> int:
+        where_sql, params = self._review_where_clause(language=language, search=search, severity=severity)
         with self.transaction() as conn:
-            if language:
-                cur = conn.execute("SELECT COUNT(*) FROM reviews WHERE language = ?", (language.lower(),))
-            else:
-                cur = conn.execute("SELECT COUNT(*) FROM reviews")
+            cur = conn.execute(f"SELECT COUNT(*) FROM reviews{where_sql}", tuple(params))
             return cur.fetchone()[0]
 
     def insert_eval_run(self, eval_data: Dict[str, Any]) -> str:
@@ -249,6 +281,11 @@ class Database:
                 d["details"] = json.loads(d.pop("details_json"))
                 runs.append(d)
             return runs
+
+    def count_eval_runs(self) -> int:
+        with self.transaction() as conn:
+            cur = conn.execute("SELECT COUNT(*) FROM eval_runs")
+            return cur.fetchone()[0]
 
     def get_eval_run(self, run_id: str) -> Optional[Dict[str, Any]]:
         with self.transaction() as conn:
