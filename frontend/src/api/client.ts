@@ -71,11 +71,19 @@ export const reviewsApi = {
   submit: (req: ReviewRequest): Promise<Review> =>
     request<Review>('POST', '/api/reviews', req),
 
-  list: (params?: { limit?: number; offset?: number; language?: string }): Promise<ReviewList> => {
+  list: (params?: {
+    limit?: number;
+    offset?: number;
+    language?: string;
+    search?: string;
+    severity?: string;
+  }): Promise<ReviewList> => {
     const qs = new URLSearchParams();
     if (params?.limit !== undefined) qs.set('limit', String(params.limit));
     if (params?.offset !== undefined) qs.set('offset', String(params.offset));
     if (params?.language) qs.set('language', params.language);
+    if (params?.search) qs.set('search', params.search);
+    if (params?.severity) qs.set('severity', params.severity);
     const q = qs.toString();
     return request<ReviewList>('GET', `/api/reviews${q ? `?${q}` : ''}`);
   },

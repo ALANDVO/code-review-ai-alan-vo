@@ -23,10 +23,27 @@ from app.core.database import Database, get_db
 from app.api import reviews, evals, stats
 from app.models.schemas import HealthOut
 
+from importlib.metadata import PackageNotFoundError, version as pkg_version
+from pathlib import Path
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger(__name__)
 
-_VERSION = "1.0.0"
+
+def _load_version() -> str:
+    for candidate in (
+        Path(__file__).resolve().parents[2] / "VERSION",
+        Path(__file__).resolve().parents[1] / "VERSION",
+    ):
+        if candidate.is_file():
+            return candidate.read_text(encoding="utf-8").strip()
+    try:
+        return pkg_version("code-review-ai-alan-vo")
+    except PackageNotFoundError:
+        return "1.0.0"
+
+
+_VERSION = _load_version()
 
 
 # ── Lifespan ───────────────────────────────────────────────────────────────────

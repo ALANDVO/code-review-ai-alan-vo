@@ -1,36 +1,46 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { reviewsApi } from '@/api/client';
-import type { Review, ReviewList } from '@/types/api';
+import { reviewsApi, statsApi } from '@/api/client';
+import type { Review, ReviewList, Stats } from '@/types/api';
 
 const LANGUAGES = ['', 'python', 'javascript', 'typescript', 'go', 'rust'];
+const SEVERITIES = ['', 'critical', 'high', 'medium', 'low'];
 const PAGE_SIZE = 20;
 
 export function ReviewListPage() {
   const navigate = useNavigate();
   const [data, setData] = useState<ReviewList | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
   const [language, setLanguage] = useState('');
+  const [severity, setSeverity] = useState('');
+  const [search, setSearch] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await reviewsApi.list({
-        limit: PAGE_SIZE,
-        offset,
-        language: language || undefined,
-      });
+      const [result, summary] = await Promise.all([
+        reviewsApi.list({
+          limit: PAGE_SIZE,
+          offset,
+          language: language || undefined,
+          severity: severity || undefined,
+          search: search.trim() || undefined,
+        }),
+        statsApi.get().catch(() => null),
+      ]);
       setData(result);
+      if (summary) setStats(summary);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load reviews');
     } finally {
       setLoading(false);
     }
-  }, [offset, language]);
+  }, [offset, language, severity, search]);
 
   useEffect(() => {
     void load();
@@ -59,17 +69,70 @@ export function ReviewListPage() {
         </button>
       </div>
 
+      {stats && (
+        <div
+          className="stats-grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: 12,
+            marginBottom: 16,
+          }}
+        >
+          <div className="card" style={{ padding: 14 }}>
+            <div className="stat-label">Total Reviews</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{stats.total_reviews}</div>
+          </div>
+          <div className="card" style={{ padding: 14 }}>
+            <div className="stat-label">Total Findings</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{stats.total_findings}</div>
+          </div>
+          <div className="card" style={{ padding: 14 }}>
+            <div className="stat-label">Critical / High</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>
+              {stats.critical_count} / {stats.high_count}
+            </div>
+          </div>
+          <div className="card" style={{ padding: 14 }}>
+            <div className="stat-label">Benchmark Runs</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{stats.eval_runs}</div>
+          </div>
+        </div>
+      )}
+
       <div className="card">
-        <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="form-group" style={{ flex: '1 1 200px' }}>
+            <input
+              aria-label="Search reviews"
+              className="form-input"
+              placeholder="Search title or code..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setOffset(0); }}
+            />
+          </div>
           <div className="form-group" style={{ flex: '0 0 auto' }}>
             <select
+              aria-label="Filter by language"
               className="form-select"
               value={language}
               onChange={e => { setLanguage(e.target.value); setOffset(0); }}
-              style={{ width: 160 }}
+              style={{ width: 150 }}
             >
               <option value="">All Languages</option>
               {LANGUAGES.filter(Boolean).map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+          <div className="form-group" style={{ flex: '0 0 auto' }}>
+            <select
+              aria-label="Filter by severity"
+              className="form-select"
+              value={severity}
+              onChange={e => { setSeverity(e.target.value); setOffset(0); }}
+              style={{ width: 150 }}
+            >
+              <option value="">All Severities</option>
+              {SEVERITIES.filter(Boolean).map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <button className="btn btn-secondary" onClick={load}>Refresh</button>

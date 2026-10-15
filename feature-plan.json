@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "current_feature": "review-search-and-metrics-dashboard",
+  "features": [
+    {
+      "id": "static-analysis-and-review-crud",
+      "title": "Deterministic multi-language static analysis and review persistence",
+      "status": "done",
+      "acceptance": [
+        "Analyze Python AST and multi-language regex rules offline without requiring an LLM key",
+        "Persist reviews, line-level CWE findings, and audit trail in SQLite with paginated retrieval"
+      ],
+      "implementation": [
+        "backend/app/main.py",
+        "backend/app/api/reviews.py",
+        "backend/app/services/analyzer.py",
+        "backend/app/core/database.py",
+        "frontend/src/pages/SubmitReviewPage.tsx",
+        "frontend/src/pages/ReviewDetailPage.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_main.py"
+      ]
+    },
+    {
+      "id": "oidc-pkce-and-rbac",
+      "title": "Keycloak OIDC PKCE authentication and role-based access control",
+      "status": "done",
+      "acceptance": [
+        "Validate RS256 bearer token signature, issuer, audience, subject, and expiration on protected endpoints",
+        "Enforce viewer, operator, and admin role hierarchy and refuse demo mode in production"
+      ],
+      "implementation": [
+        "backend/app/core/auth.py",
+        "backend/app/core/config.py",
+        "frontend/src/auth/oidc.ts",
+        "keycloak/realm-export.json"
+      ],
+      "tests": [
+        "backend/tests/test_main.py",
+        "frontend/src/test/client.test.ts"
+      ]
+    },
+    {
+      "id": "offline-benchmark-evaluation",
+      "title": "Reproducible CWE defect benchmark evaluation suite",
+      "status": "done",
+      "acceptance": [
+        "Evaluate the deterministic rule engine against 25 labeled synthetic samples and compute precision, recall, F1, and mean latency",
+        "Persist and display benchmark evidence, per-sample matches, and limitations in the evaluation view"
+      ],
+      "implementation": [
+        "backend/app/services/evaluator.py",
+        "backend/app/services/data/evaluation.json",
+        "backend/app/api/evals.py",
+        "frontend/src/pages/EvaluationPage.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_main.py"
+      ]
+    },
+    {
+      "id": "llm-advisory-enrichment",
+      "title": "Opt-in multi-provider LLM advisory enrichment with error redaction",
+      "status": "done",
+      "acceptance": [
+        "Support OpenAI-compatible, Anthropic, Gemini, and Ollama adapters for optional finding explanations",
+        "Preserve deterministic findings on provider errors and redact token-shaped strings from error output"
+      ],
+      "implementation": [
+        "backend/app/services/llm_advisor.py",
+        "backend/app/api/reviews.py",
+        "frontend/src/components/FindingList.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_main.py"
+      ]
+    },
+    {
+      "id": "review-search-and-metrics-dashboard",
+      "title": "Review search, severity filtering, file import, and live summary metrics",
+      "status": "done",
+      "acceptance": [
+        "Filter review history by search query, severity level, and language with accurate pagination counts",
+        "Scope security_scan submissions to security rules when focus_areas is default all",
+        "Display live /api/stats summary metrics on the review dashboard and support importing local source/diff files"
+      ],
+      "implementation": [
+        "backend/app/main.py",
+        "backend/app/api/reviews.py",
+        "backend/app/api/evals.py",
+        "backend/app/core/database.py",
+        "frontend/src/api/client.ts",
+        "frontend/src/pages/ReviewListPage.tsx",
+        "frontend/src/pages/SubmitReviewPage.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_main.py",
+        "frontend/src/test/client.test.ts"
+      ]
+    },
+    {
+      "id": "sarif-report-export",
+      "title": "SARIF 2.1.0 report export for static analysis findings",
+      "status": "planned",
+      "acceptance": [
+        "Export stored review findings as SARIF 2.1.0 JSON for external code-scanning integrations"
+      ],
+      "implementation": [],
+      "tests": []
+    }
+  ]
+}
