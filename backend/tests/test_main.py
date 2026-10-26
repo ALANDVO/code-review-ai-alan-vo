@@ -588,3 +588,124 @@ def test_admin_eval_pagination_and_audit_logs(test_settings):
         assert audit.status_code == 200
         assert len(audit.json()) >= 2
 
+def test_sarif_export_single_review(client):
+    """Test exporting a single review as SARIF 2.1.0."""
+    # Create a review with findings
+    resp = client.post(
+        "/api/reviews",
+        json={
+            "title": "Test review for SARIF",
+            "language": "python",
+            "review_type": "full_file",
+            "focus_areas": "all",
+            "code_snippet": "result = eval(user_input)\n",
+            "use_llm_advisory": False,
+        },
+    )
+    assert resp.status_code == 201
+    review_id = resp.json()["id"]
+
+    # Export as SARIF
+    sarif_resp = client.get(f"/api/reviews/{review_id}/sarif")
+    assert sarif_resp.status_code == 200
+    assert sarif_resp.headers["content-type"] == "application/sarif+json"
+
+    sarif_data = sarif_resp.json()
+    assert sarif_data["version"] == "2.1.0"
+    assert sarif_data["$schema"] == "https://json.schemastore.org/sarif-2.1.0.json"
+    assert len(sarif_data["runs"]) == 1
+    run = sarif_data["runs"][0]
+    assert run["tool"]["driver"]["name"] == "Code Review AI"
+    assert len(run["results"]) >= 1
+    assert len(run["tool"]["driver"]["rules"]) >= 1
+    result = run["results"][0]
+    assert "ruleId" in result
+    assert "level" in result
+    assert "message" in result
+    assert "locations" in result
+
+
+def test_sarif_export_multiple_reviews(client):
+    """Test exporting multiple reviews as SARIF 2.1.0."""
+    # Create two reviews
+    resp1 = client.post(
+        "/api/reviews",
+        json={
+            "title": "Review 1",
+            "language": "python",
+            "review_type": "full_file",
+            "focus_areas": "all",
+            "code_snippet": "result = eval(user_input)\n",
+            "use_llm_advisory": False,
+        },
+    )
+    assert resp1.status_code == 201
+    resp2 = client.post(
+        "/api/reviews",
+        json={
+            "title": "Review 2",
+            "language": "javascript",
+            "review_type": "full_file",
+            "focus_areas": "all",
+            "code_snippet": "element.innerHTML = userInput;\n",
+            "use_llm_advisory": False,
+        },
+    )
+    assert resp2.status_code == 201
+
+    # Export all as SARIF
+    sarif_resp = client.get("/api/reviews/sarif")
+    assert sarif_resp.status_code == 200
+    assert sarif_resp.headers["content-type"] == "application/sarif+json"
+
+    sarif_data = sarif_resp.json()
+    assert sarif_data["version"] == "2.1.0"
+    assert len(sarif_data["runs"]) == 2
+    for run in sarif_data["runs"]:
+        assert run["tool"]["driver"]["name"] == "Code Review AI"
+        assert "automationDetails" in run
+        assert "id" in run["automationDetails"]
+        assert len(run["results"]) >= 1
+        assert len(run["tool"]["driver"]["rules"]) >= 1
+
+
+def test_sarif_export_with_filters(client):
+    """Test SARIF export with language and severity filters."""
+    # Create reviews in different languages
+    client.post(
+        "/api/reviews",
+        json={
+            "title": "Python review",
+            "language": "python",
+            "review_type": "full_file",
+            "focus_areas": "all",
+            "code_snippet": "result = eval(user_input)\n",
+            "use_llm_advisory": False,
+        },
+    )
+    client.post(
+        "/api/reviews",
+        json={
+            "title": "JS review",
+            "language": "javascript",
+            "review_type": "full_file",
+            "focus_areas": "all",
+            "code_snippet": "element.innerHTML = userInput;\n",
+            "use_llm_advisory": False,
+        },
+    )
+
+    # Export only Python reviews
+    sarif_resp = client.get("/api/reviews/sarif", params={"language": "python"})
+    assert sarif_resp.status_code == 200
+    sarif_data = sarif_resp.json()
+    assert len(sarif_data["runs"]) == 1
+    assert sarif_data["runs"][0]["automationDetails"]["description"] == "Python review"
+
+    # Export only JavaScript reviews
+    sarif_resp = client.get("/api/reviews/sarif", params={"language": "javascript"})
+    assert sarif_resp.status_code == 200
+    sarif_data = sarif_resp.json()
+    assert len(sarif_data["runs"]) == 1
+    assert sarif_data["runs"][0]["automationDetails"]["description"] == "JS review"
+

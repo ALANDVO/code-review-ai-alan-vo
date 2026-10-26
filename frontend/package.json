@@ -2,7 +2,11 @@
   "name": "code-review-ai-alan-vo",
   "version": "1.0.0",
   "description": "Code Review AI \u2014 multi-language static analysis dashboard",
-  "author": "Alan Vo <alanvo@gmail.com>",
+  "author": {
+    "name": "Alan Vo",
+    "email": "alanvo@gmail.com",
+    "url": "https://github.com/ALANDVO"
+  },
   "license": "MIT",
   "private": true,
   "type": "module",

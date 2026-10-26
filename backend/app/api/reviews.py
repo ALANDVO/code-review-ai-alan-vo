@@ -1,10 +1,12 @@
 """Reviews API — submit code for analysis and retrieve past reviews."""
 from __future__ import annotations
 
+import json
 import uuid
-from typing import Optional
+from typing import Optional, Dict, List, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import Response
 
 from app.core.auth import Principal, require_operator, require_viewer
 from app.core.database import get_db
@@ -18,6 +20,7 @@ from app.models.schemas import (
 )
 from app.services.analyzer import analyze_code, analyze_diff
 from app.services.llm_advisor import enrich_with_advisory
+from app.services.sarif_export import export_findings_to_sarif, export_reviews_to_sarif
 from datetime import datetime, timezone
 
 router = APIRouter(prefix="/api/reviews", tags=["reviews"])
@@ -151,6 +154,55 @@ async def list_reviews(
     )
 
 
+@router.get("/{review_id}/sarif")
+async def export_review_sarif(
+    review_id: str,
+    request: Request,
+    principal: Principal = Depends(require_viewer),
+) -> Response:
+    """Export a single review's findings as SARIF 2.1.0 JSON."""
+    db = request.app.state.db
+    review = db.get_review(review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail=f"Review '{review_id}' not found.")
+    findings = review.pop("findings", [])
+    sarif_data = export_findings_to_sarif(
+        review_id=review_id,
+        review_title=review.get("title", "Code review"),
+        findings=findings,
+    )
+    return Response(
+        content=json.dumps(sarif_data, indent=2),
+        media_type="application/sarif+json",
+        headers={"Content-Disposition": f'attachment; filename="review-{review_id}.sarif"'},
+    )
+
+
+@router.get("/sarif")
+async def export_reviews_sarif(
+    request: Request,
+    language: Optional[str] = Query(None, description="Filter by language"),
+    search: Optional[str] = Query(None, description="Search query"),
+    severity: Optional[str] = Query(None, description="Filter by severity"),
+    principal: Principal = Depends(require_viewer),
+) -> Response:
+    """Export filtered reviews' findings as SARIF 2.1.0 JSON."""
+    db = request.app.state.db
+    reviews = db.list_reviews(language=language, search=search, severity=severity, limit=1000, offset=0)
+
+    # Collect all findings for each review
+    findings_by_review: Dict[str, List[Dict[str, Any]]] = {}
+    for review in reviews:
+        full_review = db.get_review(review["id"])
+        if full_review:
+            findings_by_review[review["id"]] = full_review.get("findings", [])
+
+    sarif_data = export_reviews_to_sarif(reviews, findings_by_review)
+    return Response(
+        content=json.dumps(sarif_data, indent=2),
+        media_type="application/sarif+json",
+        headers={"Content-Disposition": f'attachment; filename="reviews-export.sarif"'},
+    )
 @router.get("/{review_id}", response_model=ReviewOut)
 async def get_review(
     request: Request,
@@ -184,3 +236,6 @@ async def delete_review(
         resource_id=review_id,
         ip_address=request.client.host if request.client else None,
     )
+
+
+

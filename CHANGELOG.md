@@ -1,9 +1,17 @@
 # Changelog
 
+## 1.2.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
 ## 1.1.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
 
+### Added
+- SARIF 2.1.0 export for static analysis findings (`GET /api/reviews/{id}/sarif` and `GET /api/reviews/sarif`) with filtering by language, search, and severity.
+- SARIF export service (`backend/app/services/sarif_export.py`) with proper rule deduplication, CWE mapping, and SARIF schema validation.
+- Backend tests for single-review export, multi-review export, and filtered exports.
 ## [1.0.0] - 2026-10-09
 
 ## Unreleased
