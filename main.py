@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 # code-review-ai — AI code review assistant that analyzes diffs or files for bugs, security issues, style problems, and performance pitfalls, generating line-by-line review comments for Python, JS, Go, and Rust.
-import sys, os
+import sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from llm_client import LLM
+
+# Import static analyzer from backend
+try:
+    from backend.app.services.analyzer import analyze_code, analyze_diff, Finding
+    STATIC_ANALYZER_AVAILABLE = True
+except ImportError:
+    STATIC_ANALYZER_AVAILABLE = False
+
 def _detect_lang(filepath, explicit=None):
     if explicit:
         return explicit
+    if not filepath:
+        return "python"
     ext = os.path.splitext(filepath)[1].lower()
     return {".py": "python", ".js": "javascript", ".ts": "typescript", ".jsx": "javascript", ".tsx": "typescript", ".go": "go", ".rs": "rust"}.get(ext, "python")
 
@@ -14,6 +24,21 @@ def _read_code(args):
         return sys.stdin.read()
     with open(args.file) as f:
         return f.read()
+
+def _findings_to_dicts(findings, elapsed_ms):
+    """Convert analyzer Finding objects to dicts for _report."""
+    return [
+        {
+            "line": f.line_number,
+            "severity": f.severity,
+            "category": f.category,
+            "message": f.message,
+            "suggestion": f.suggestion,
+            "rule_id": f.rule_id,
+            "cwe": f.cwe,
+        }
+        for f in findings
+    ], elapsed_ms
 
 def review(args):
     """Full-file code review with LLM analysis."""
@@ -51,19 +76,53 @@ def diff(args):
     llm = LLM()
     code = _read_code(args)
     lang = _detect_lang(getattr(args, "file", ""), args.lang)
-    print(f"Reviewing diff ({lang}, {len(code.splitlines())} lines)\n")
+    focus = (args.focus or "all").split(",")
+    print(f"Reviewing diff ({lang}), focus: {focus}\n")
 
-    # Only review added lines context
     response = llm.generate(
-        f"Language: {lang}\n\nUnified diff:\n```diff\n{code}\n```\n\n"
-        "Review ONLY the changes (added/modified lines). For each issue in the CHANGED code, output one JSON object per line (JSONL) with fields:\n"
-        '{"line": <line number in the diff>, "severity": "critical|high|medium|low", "category": "bug|security|performance|style|maintainability", "message": "<specific description>", "suggestion": "<concrete fix>"}\n'
-        "Flag regressions, broken callers, and new vulnerabilities introduced by the change. If the diff is clean, output: CLEAN",
-        system="You are reviewing a PR diff. Focus on what the change breaks or introduces: API contract violations, unhandled edge cases, security holes, performance regressions. Be surgical."
+        f"Language: {lang}\nFocus areas: {', '.join(focus)}\n\n"
+        f"Unified diff:\n```diff\n{code[:12000]}\n```\n\n"
+        "Review the ADDED/CHANGED lines in this diff. For EACH issue found, output one JSON object on its own line (JSONL format) with fields:\n"
+        '{"line": <line number in diff>, "severity": "critical|high|medium|low", "category": "bug|security|performance|style|maintainability", "message": "<specific, actionable description>", "suggestion": "<concrete fix or code snippet>"}\n'
+        "Only report genuine issues in added/changed lines. No praise, no filler. If clean, output exactly: CLEAN",
+        system="You are a staff-level engineer doing a rigorous code review of a diff. Be specific: cite the exact expression, name the vulnerability class (CWE if security), and give a fix."
     )
     findings = _parse_review(response, 0)
     _report(findings, args)
     return findings
+
+def review_static(args):
+    """Full-file code review with static analysis (no LLM required)."""
+    if not STATIC_ANALYZER_AVAILABLE:
+        print("Error: Static analyzer not available. Ensure backend dependencies are installed.")
+        return []
+    code = _read_code(args)
+    lang = _detect_lang(getattr(args, "file", ""), args.lang)
+    focus = args.focus or "all"
+    lines = code.split("\n")
+    print(f"Static analysis of {len(lines)} lines ({lang}), focus: {focus or 'all'}\n")
+
+    findings, elapsed = analyze_code(code, lang, focus_areas=focus)
+    findings_dicts, _ = _findings_to_dicts(findings, elapsed)
+    print(f"  Analyzed in {elapsed:.1f}ms, {len(findings)} finding(s)")
+    _report(findings_dicts, args)
+    return findings_dicts
+
+def diff_static(args):
+    """Review a unified diff with static analysis (no LLM required)."""
+    if not STATIC_ANALYZER_AVAILABLE:
+        print("Error: Static analyzer not available. Ensure backend dependencies are installed.")
+        return []
+    diff_text = _read_code(args)
+    lang = _detect_lang(getattr(args, "file", ""), args.lang)
+    focus = args.focus or "all"
+    print(f"Static analysis of diff ({lang}), focus: {focus or 'all'}\n")
+
+    findings, elapsed = analyze_diff(diff_text, lang, focus_areas=focus)
+    findings_dicts, _ = _findings_to_dicts(findings, elapsed)
+    print(f"  Analyzed in {elapsed:.1f}ms, {len(findings)} finding(s)")
+    _report(findings_dicts, args)
+    return findings_dicts
 
 def _parse_review(response, base_line):
     findings = []
@@ -82,6 +141,7 @@ def _parse_review(response, base_line):
     return findings
 
 def _report(findings, args):
+    from collections import Counter
     sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
     findings.sort(key=lambda f: (sev_order.get(f.get("severity", "low"), 4), f.get("line", 0)))
 
@@ -112,8 +172,7 @@ def _report(findings, args):
         print(f"\nSaved to {args.output}")
 
 def scan(args):
-    """Quick security-only scan across a directory."""
-    llm = LLM()
+    """Security scan across a directory (static by default, --llm for LLM)."""
     path = args.path
     files = []
     if os.path.isdir(path):
@@ -122,61 +181,116 @@ def scan(args):
     else:
         files = [path]
 
-    print(f"Security scanning {len(files)} file(s)...\n")
-    all_findings = []
-    for filepath in files:
-        try:
-            with open(filepath) as f:
-                code = f.read()
-        except (UnicodeDecodeError, OSError):
-            continue
-        lang = _detect_lang(filepath)
-        response = llm.generate(
-            f"File: {filepath}\nLanguage: {lang}\n```{lang}\n{code[:12000]}\n```\n\n"
-            "List ONLY security vulnerabilities in this file as JSONL: "
-            '{"line": <n>, "severity": "critical|high|medium|low", "cwe": "CWE-xxx", "message": "<desc>", "suggestion": "<fix>"}\n'
-            "Look for: hardcoded secrets, injection (SQL/cmd/XSS), path traversal, insecure deserialization, missing auth checks, weak crypto. Output CLEAN if none.",
-            system="You are a security engineer. Be precise — name the exact vulnerability and CWE. No false positives: confirm the vulnerable expression exists in the code."
-        )
-        found = _parse_review(response, 0)
-        found = [f for f in found if f.get("cwe") or f.get("category") in ("security", "bug")]
-        if found:
-            print(f"  {filepath}: {len(found)} issue(s)")
-            for f in found:
-                print(f"    L{f['line']} [{f.get('severity','?')}] {f.get('cwe','')} {f.get('message','')[:100]}")
-            all_findings.extend(found)
-        else:
-            print(f"  {filepath}: clean")
+    if args.llm:
+        # LLM-based security scan
+        llm = LLM()
+        print(f"LLM security scanning {len(files)} file(s)...\n")
+        all_findings = []
+        for filepath in files:
+            try:
+                with open(filepath) as f:
+                    code = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            lang = _detect_lang(filepath)
+            response = llm.generate(
+                f"File: {filepath}\nLanguage: {lang}\n```{lang}\n{code[:12000]}\n```\n\n"
+                "List ONLY security vulnerabilities in this file as JSONL: "
+                '{"line": <n>, "severity": "critical|high|medium|low", "cwe": "CWE-xxx", "message": "<desc>", "suggestion": "<fix>"}\n'
+                "Look for: hardcoded secrets, injection (SQL/cmd/XSS), path traversal, insecure deserialization, missing auth checks, weak crypto. Output CLEAN if none.",
+                system="You are a security engineer. Be precise — name the exact vulnerability and CWE. No false positives: confirm the vulnerable expression exists in the code."
+            )
+            found = _parse_review(response, 0)
+            found = [f for f in found if f.get("cwe") or f.get("category") in ("security", "bug")]
+            if found:
+                print(f"  {filepath}: {len(found)} issue(s)")
+                for f in found:
+                    print(f"    L{f['line']} [{f.get('severity','?')}] {f.get('cwe','')} {f.get('message','')[:100]}")
+                all_findings.extend(found)
+            else:
+                print(f"  {filepath}: clean")
 
-    print(f"\nTotal security findings: {len(all_findings)}")
-    if args.output:
-        with open(args.output, "w") as f:
-            json.dump(all_findings, f, indent=2)
-        print(f"Saved to {args.output}")
-    return all_findings
+        print(f"\nTotal security findings: {len(all_findings)}")
+        if args.output:
+            with open(args.output, "w") as f:
+                json.dump(all_findings, f, indent=2)
+            print(f"Saved to {args.output}")
+        return all_findings
+    else:
+        # Static analysis security scan
+        if not STATIC_ANALYZER_AVAILABLE:
+            print("Error: Static analyzer not available. Ensure backend dependencies are installed.")
+            return []
+        print(f"Static security scanning {len(files)} file(s)...\n")
+        all_findings = []
+        for filepath in files:
+            try:
+                with open(filepath) as f:
+                    code = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            lang = _detect_lang(filepath)
+            findings, elapsed = analyze_code(code, lang, focus_areas="security")
+            if findings:
+                print(f"  {filepath}: {len(findings)} issue(s) ({elapsed:.1f}ms)")
+                for f in findings:
+                    print(f"    L{f.line_number} [{f.severity.upper()}] {f.rule_id} {f.message[:100]}")
+                    all_findings.append({
+                        "line": f.line_number,
+                        "severity": f.severity,
+                        "category": f.category,
+                        "message": f.message,
+                        "suggestion": f.suggestion,
+                        "rule_id": f.rule_id,
+                        "cwe": f.cwe,
+                        "file": filepath,
+                    })
+            else:
+                print(f"  {filepath}: clean ({elapsed:.1f}ms)")
+
+        print(f"\nTotal security findings: {len(all_findings)}")
+        if args.output:
+            with open(args.output, "w") as f:
+                json.dump(all_findings, f, indent=2)
+            print(f"Saved to {args.output}")
+        return all_findings
 
 def main():
     import argparse
     p = argparse.ArgumentParser(prog="code-review-ai", description="AI code review assistant")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    r = sub.add_parser("review", help="Review a full file")
+    r = sub.add_parser("review", help="Review a full file using LLM")
     r.add_argument("--file", default=None); r.add_argument("--stdin", action="store_true")
     r.add_argument("--lang", default=None); r.add_argument("--focus", default="all")
     r.add_argument("--output", default=None)
     r.set_defaults(fn=review)
 
-    d = sub.add_parser("diff", help="Review a unified diff")
+    d = sub.add_parser("diff", help="Review a unified diff using LLM")
     d.add_argument("--file", default=None); d.add_argument("--stdin", action="store_true")
-    d.add_argument("--lang", default=None); d.add_argument("--output", default=None)
+    d.add_argument("--lang", default=None); d.add_argument("--focus", default="all")
+    d.add_argument("--output", default=None)
     d.set_defaults(fn=diff)
 
-    s = sub.add_parser("scan", help="Security scan a directory")
+    rs = sub.add_parser("review-static", help="Review a full file using static analysis (no LLM required)")
+    rs.add_argument("--file", default=None); rs.add_argument("--stdin", action="store_true")
+    rs.add_argument("--lang", default=None); rs.add_argument("--focus", default="all")
+    rs.add_argument("--output", default=None)
+    rs.set_defaults(fn=review_static)
+
+    ds = sub.add_parser("diff-static", help="Review a unified diff using static analysis (no LLM required)")
+    ds.add_argument("--file", default=None); ds.add_argument("--stdin", action="store_true")
+    ds.add_argument("--lang", default=None); ds.add_argument("--focus", default="all")
+    ds.add_argument("--output", default=None)
+    ds.set_defaults(fn=diff_static)
+
+    s = sub.add_parser("scan", help="Security scan a directory (static by default, --llm for LLM)")
     s.add_argument("path"); s.add_argument("--output", default=None)
+    s.add_argument("--llm", action="store_true", help="Use LLM instead of static analysis")
     s.set_defaults(fn=scan)
 
     args = p.parse_args()
-    if not args.file and not getattr(args, "stdin", False):
+    if args.cmd in ("review", "diff", "review-static", "diff-static") and not args.file and not getattr(args, "stdin", False):
         p.error("provide --file or --stdin")
     args.fn(args)
 
