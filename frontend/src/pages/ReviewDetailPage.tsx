@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { reviewsApi } from '@/api/client';
-import type { Review } from '@/types/api';
+import type { Review, Finding } from '@/types/api';
 import { FindingList } from '@/components/FindingList';
 
 export function ReviewDetailPage() {
@@ -11,6 +11,8 @@ export function ReviewDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCode, setShowCode] = useState(false);
+  const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
+  const [codeLines, setCodeLines] = useState<string[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -20,6 +22,20 @@ export function ReviewDetailPage() {
       .catch(err => setError(err instanceof Error ? err.message : 'Failed to load'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Parse code into lines for highlighting
+  useEffect(() => {
+    if (review?.code_snippet) {
+      setCodeLines(review.code_snippet.split('\n'));
+    }
+  }, [review?.code_snippet]);
+
+  const handleFindingClick = (finding: Finding) => {
+    setSelectedFinding(finding === selectedFinding ? null : finding);
+    if (finding !== selectedFinding) {
+      setShowCode(true);
+    }
+  };
 
   const handleExport = () => {
     if (!review) return;
@@ -40,6 +56,16 @@ export function ReviewDetailPage() {
       alert(err instanceof Error ? err.message : 'Delete failed');
     }
   };
+
+  // Highlight the selected finding's line in code
+  const highlightedCode = useMemo(() => {
+    if (!selectedFinding || codeLines.length === 0) return null;
+    const lineIndex = selectedFinding.line_number - 1;
+    if (lineIndex < 0 || lineIndex >= codeLines.length) return null;
+    return codeLines.map((line, idx) =>
+      idx === lineIndex ? <div key={idx} className="highlighted-line">{line}</div> : <div key={idx}>{line}</div>
+    );
+  }, [selectedFinding, codeLines]);
 
   if (loading) {
     return (
@@ -116,7 +142,50 @@ export function ReviewDetailPage() {
               Findings ({review.findings?.length ?? review.total_findings})
             </h2>
           </div>
-          <FindingList findings={review.findings ?? []} />
+          <FindingList
+            findings={review.findings ?? []}
+            onFindingClick={handleFindingClick}
+            selectedFindingId={selectedFinding?.id}
+          />
+
+          {/* Rule details panel for selected finding */}
+          {selectedFinding && (
+            <div className="rule-details">
+              <h3>Rule Details</h3>
+              <div className="rule-details-grid">
+                <div className="rule-detail-item">
+                  <span className="rule-detail-label">Rule ID</span>
+                  <span className="rule-detail-value">{selectedFinding.rule_id || 'N/A'}</span>
+                </div>
+                <div className="rule-detail-item">
+                  <span className="rule-detail-label">CWE</span>
+                  <span className="rule-detail-value">{selectedFinding.cwe || 'N/A'}</span>
+                </div>
+                <div className="rule-detail-item">
+                  <span className="rule-detail-label">Severity</span>
+                  <span className="rule-detail-value">{selectedFinding.severity}</span>
+                </div>
+                <div className="rule-detail-item">
+                  <span className="rule-detail-label">Category</span>
+                  <span className="rule-detail-value">{selectedFinding.category}</span>
+                </div>
+                <div className="rule-detail-item">
+                  <span className="rule-detail-label">Line</span>
+                  <span className="rule-detail-value">{selectedFinding.line_number}</span>
+                </div>
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <span className="rule-detail-label">Message</span>
+                <p style={{ margin: '4px 0', fontSize: '13px' }}>{selectedFinding.message}</p>
+              </div>
+              {selectedFinding.suggestion && (
+                <div style={{ marginTop: 8 }}>
+                  <span className="rule-detail-label">Suggestion</span>
+                  <p style={{ margin: '4px 0', fontSize: '13px' }}>{selectedFinding.suggestion}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Code view */}
@@ -128,7 +197,13 @@ export function ReviewDetailPage() {
             </button>
           </div>
           {showCode && (
-            <div className="code-block">{review.code_snippet}</div>
+            <div className="code-block">
+              {highlightedCode ? (
+                highlightedCode
+              ) : (
+                review.code_snippet.split('\n').map((line, idx) => <div key={idx}>{line}</div>)
+              )}
+            </div>
           )}
         </div>
       </div>

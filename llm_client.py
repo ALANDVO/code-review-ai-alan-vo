@@ -18,9 +18,7 @@ class LLM:
 
     def classify(self, text, categories, instructions=""):
         sep = ", "
-        prompt = f"{instructions}Classify: {text}
-Categories: {sep.join(categories)}
-Respond as JSON: {{"category": "...", "confidence": 0.95, "reasoning": "..."}}"
+        prompt = f"{instructions}Classify: {text}\nCategories: {sep.join(categories)}\nRespond as JSON: {{\"category\": \"...\", \"confidence\": 0.95, \"reasoning\": \"...\"}}"
         raw = self.chat([{"role": "system", "content": "Respond only with valid JSON."}, {"role": "user", "content": prompt}])
         start, end = raw.find("{"), raw.rfind("}") + 1
         try:
