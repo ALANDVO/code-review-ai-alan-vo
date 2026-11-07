@@ -11,3 +11,7 @@ Repair this preserved checkpoint. Previous failure: git push failed (exit 1); re
 ## Next round
 
 Resume PLAN.md, check the current code, fix failures and advance one feature.
+
+---
+
+Alan Vo · [alanvo.net](https://alanvo.net)

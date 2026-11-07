@@ -36,3 +36,7 @@ Partial code published for continued development. Known issues: STATUS.md.
 - Add frontend build, authentication-boundary tests, container packaging, and public-runner CI.
 - Correct the browser diff payload so findings use changed-file line numbers, and make the dashboard responsive on mobile.
 - Verify real browser create/read/export workflows and a local OIDC protocol fixture through PKCE, signed tokens, authorized review creation, and administrator evaluation.
+
+---
+
+Alan Vo · [alanvo.net](https://alanvo.net)

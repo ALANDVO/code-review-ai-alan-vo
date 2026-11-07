@@ -113,3 +113,7 @@ Failure cases include obfuscated calls, cross-file vulnerabilities, safe usages 
 Back up the configured SQLite database while the app is stopped, or use SQLite's backup API. Reviews may contain proprietary code; define your own retention and access policy. Logs omit raw provider responses. GitHub CI runs backend tests, frontend tests/build, and both Docker builds on standard public-repository runners; it does not call paid LLMs or push images.
 
 Maintained by **Alan Vo** · [GitHub](https://github.com/ALANDVO) · [alanvo@gmail.com](mailto:alanvo@gmail.com)
+
+---
+
+Alan Vo · [alanvo.net](https://alanvo.net)
