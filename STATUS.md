@@ -2,11 +2,11 @@
 
 Work in progress; not a release-readiness or successful QA claim.
 
-Version: 1.3.0
+Version: 1.4.0
 
 ## Outstanding findings
 
-Repair this preserved checkpoint. Previous failure: git push failed (exit 1); retained checkout
+No completed independent review for this checkpoint.
 
 ## Next round
 

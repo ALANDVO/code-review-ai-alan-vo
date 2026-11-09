@@ -252,5 +252,78 @@
     "forbidden_rule_ids": [
       "SEC008"
     ]
+  },
+  {
+    "sample_id": "RS-SEC-001",
+    "language": "rust",
+    "description": "unwrap() on Option \u2014 will panic on None",
+    "code": "fn get_config() -> Option<String> {\n    None\n}\n\nfn main() {\n    let config = get_config().unwrap();\n}",
+    "expected_rule_ids": [
+      "SEC014"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "RS-SEC-002",
+    "language": "rust",
+    "description": "unwrap() on Result \u2014 will panic on Err",
+    "code": "fn read_file(path: &str) -> Result<String, std::io::Error> {\n    Err(std::io::Error::new(std::io::ErrorKind::NotFound, \"missing\"))\n}\n\nfn main() {\n    let content = read_file(\"test.txt\").unwrap();\n}",
+    "expected_rule_ids": [
+      "SEC014"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "RS-SEC-003",
+    "language": "rust",
+    "description": "expect() with static message \u2014 panics on Err",
+    "code": "fn fetch_data() -> Result<String, reqwest::Error> {\n    Err(reqwest::Error::new(reqwest::ErrorKind::Other, \"fail\"))\n}\n\nfn main() {\n    let data = fetch_data().expect(\"Failed to fetch data\");\n}",
+    "expected_rule_ids": [
+      "SEC015"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "RS-BUG-001",
+    "language": "rust",
+    "description": "println! macro in production code",
+    "code": "fn process_user(id: u64) -> String {\n    println!(\"Processing user {}\", id);\n    format!(\"user-{}\", id)\n}",
+    "expected_rule_ids": [
+      "BUG008"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "RS-MAINT-001",
+    "language": "rust",
+    "description": "todo!() indicates unfinished implementation",
+    "code": "fn calculate_tax(income: f64) -> f64 {\n    todo!(\"Implement tax brackets\")\n}",
+    "expected_rule_ids": [
+      "MAINT004"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "RS-MAINT-002",
+    "language": "rust",
+    "description": "unimplemented!() indicates missing implementation",
+    "code": "fn connect_to_database(url: &str) -> Result<Connection, Error> {\n    unimplemented!(\"Database driver not ready\")\n}",
+    "expected_rule_ids": [
+      "MAINT004"
+    ],
+    "forbidden_rule_ids": []
+  },
+  {
+    "sample_id": "RS-CLEAN-001",
+    "language": "rust",
+    "description": "Clean Rust with proper error handling \u2014 no issues expected",
+    "code": "use std::fs;\nuse std::io;\n\nfn read_file_safe(path: &str) -> io::Result<String> {\n    fs::read_to_string(path)\n}\n\nfn parse_int_safe(s: &str) -> Result<i32, std::num::ParseIntError> {\n    s.parse()\n}\n",
+    "expected_rule_ids": [],
+    "forbidden_rule_ids": [
+      "SEC014",
+      "SEC015",
+      "BUG008",
+      "MAINT004"
+    ]
   }
 ]

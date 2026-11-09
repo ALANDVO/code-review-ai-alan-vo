@@ -1,11 +1,30 @@
 {
   "schema_version": 1,
-  "current_feature": "continue-implementation",
+  "current_feature": "rust-rules-enhancement",
   "features": [
+    {
+      "id": "rust-rules-enhancement",
+      "title": "Add Rust-specific static analysis rules and evaluation samples",
+      "status": "done",
+      "acceptance": [
+        "Add SEC014 (unwrap panic risk), SEC015 (expect panic risk), BUG008 (println! debug output), MAINT004 (todo!/unimplemented!) rules for Rust",
+        "Add 7 Rust evaluation samples covering the new rules",
+        "All backend and frontend tests pass",
+        "Evaluation run shows 100% pass rate for new Rust samples"
+      ],
+      "implementation": [
+        "backend/app/services/data/rules.json",
+        "backend/app/services/data/evaluation.json"
+      ],
+      "tests": [
+        "backend/tests/test_main.py",
+        "frontend/src/test/client.test.ts"
+      ]
+    },
     {
       "id": "continue-implementation",
       "title": "Continue implementation and resolve known failures",
-      "status": "in_progress",
+      "status": "planned",
       "acceptance": [
         "Run checks, fix failures, and implement the next planned feature"
       ],
