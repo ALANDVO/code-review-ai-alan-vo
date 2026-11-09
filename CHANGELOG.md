@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
 ## 1.3.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
@@ -20,9 +24,19 @@ Partial code published for continued development. Known issues: STATUS.md.
 - SARIF 2.1.0 export for static analysis findings (`GET /api/reviews/{id}/sarif` and `GET /api/reviews/sarif`) with filtering by language, search, and severity.
 - SARIF export service (`backend/app/services/sarif_export.py`) with proper rule deduplication, CWE mapping, and SARIF schema validation.
 - Backend tests for single-review export, multi-review export, and filtered exports.
+
 ## [1.0.0] - 2026-10-09
 
 ## Unreleased
+
+### Added
+- Rust-specific static analysis rules and evaluation samples:
+  - SEC014: `unwrap()` panic risk detection (high, security, CWE-248)
+  - SEC015: `expect()` with static message panic risk (high, security, CWE-248)
+  - BUG008: `println!()` macro in production code (low, bug)
+  - MAINT004: `todo!()` / `unimplemented!()` unfinished implementation (low, maintainability)
+- 7 Rust evaluation samples covering the new rules (RS-SEC-001 through RS-CLEAN-001)
+- Evaluation baseline expanded to 32 samples with 96.88% pass rate
 
 - Add parameterized `search` and `severity` filters to `GET /api/reviews` and wire live `/api/stats` summary metrics and filter controls into the review history dashboard.
 - Add local source/diff file import to the review submission form and scope `security_scan` submissions to security rules by default.

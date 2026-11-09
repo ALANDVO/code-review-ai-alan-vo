@@ -162,6 +162,32 @@
     "suppress": null
   },
   {
+    "rule_id": "SEC014",
+    "pat": "\\bunwrap\\s*\\(",
+    "sev": "high",
+    "cat": "security",
+    "msg": "Calling unwrap() on Option/Result will panic on None/Err; unsafe for production.",
+    "sug": "Use pattern matching, expect() with context, or the ? operator for error propagation.",
+    "cwe": "CWE-248",
+    "langs": [
+      "rust"
+    ],
+    "suppress": null
+  },
+  {
+    "rule_id": "SEC015",
+    "pat": "\\bexpect\\s*\\(\\s*[\"'][^\"']{4,}[\"']",
+    "sev": "high",
+    "cat": "security",
+    "msg": "expect() with a static message will panic on Err/None; prefer proper error handling.",
+    "sug": "Use the ? operator, match, or map_err to handle errors gracefully.",
+    "cwe": "CWE-248",
+    "langs": [
+      "rust"
+    ],
+    "suppress": null
+  },
+  {
     "rule_id": "BUG001",
     "pat": "except\\s*:",
     "sev": "medium",
@@ -256,6 +282,19 @@
     "suppress": null
   },
   {
+    "rule_id": "BUG008",
+    "pat": "\\bprintln!\\s*\\(",
+    "sev": "low",
+    "cat": "bug",
+    "msg": "println!() macro left in production code; may expose sensitive data or impact performance.",
+    "sug": "Use the log crate with appropriate levels (debug, info, warn, error) instead.",
+    "cwe": null,
+    "langs": [
+      "rust"
+    ],
+    "suppress": null
+  },
+  {
     "rule_id": "PERF001",
     "pat": "for\\s+\\w+\\s+in\\s+range\\s*\\(.+\\)\\s*:\\s*\\n\\s+for\\s+\\w+\\s+in\\s+range",
     "sev": "medium",
@@ -339,5 +378,19 @@
     "cwe": null,
     "langs": [],
     "suppress": null
+  },
+  {
+    "rule_id": "MAINT004",
+    "pat": "\\b(todo!|unimplemented!)\\s*\\(",
+    "sev": "low",
+    "cat": "maintainability",
+    "msg": "todo!() or unimplemented!() indicates unfinished implementation that will panic at runtime.",
+    "sug": "Complete the implementation or track in an issue tracker before merging.",
+    "cwe": null,
+    "langs": [
+      "rust"
+    ],
+    "suppress": null
   }
 ]
+
