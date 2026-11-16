@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "code-review-ai-alan-vo"
-version = "1.0.0"
+version = "1.5.0"
 description = "Multi-language static analysis and LLM-assisted code review engine with empirical defect detection benchmarking"
 readme = "README.md"
 requires-python = ">=3.11"

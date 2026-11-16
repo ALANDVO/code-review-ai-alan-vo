@@ -7,6 +7,7 @@ any external dependency. Data provenance: hand-crafted synthetic snippets
 representing representative defect patterns from CWE taxonomy categories.
 Each sample has known-positive or known-negative labels per rule family.
 """
+# Rust-specific rules: SEC014, SEC015, BUG008, MAINT004 are included.
 from __future__ import annotations
 
 import time
