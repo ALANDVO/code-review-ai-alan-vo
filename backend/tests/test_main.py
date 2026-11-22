@@ -173,6 +173,44 @@ class TestAnalyzerRules:
         code = "x = 1\n"
         _, elapsed = analyze_code(code, "python")
         assert elapsed >= 0
+    def test_sec014_unwrap_fires_rust(self):
+        """Test SEC014: unwrap() on Option/Result panics on None/Err."""
+        code = "fn main() {\n    let x = Option::None;\n    let y = x.unwrap();\n}"
+        findings, _ = analyze_code(code, "rust")
+        rule_ids = [f.rule_id for f in findings]
+        assert "SEC014" in rule_ids
+
+    def test_sec015_expect_fires_rust(self):
+        """Test SEC015: expect() with static message panics on Err/None."""
+        code = 'fn main() {\n    let data = fetch_data().expect(\"Failed to fetch data\");\n}'
+        findings, _ = analyze_code(code, "rust")
+        rule_ids = [f.rule_id for f in findings]
+        assert "SEC015" in rule_ids
+
+    def test_bug008_println_fires_rust(self):
+        """Test BUG008: println!() macro left in production code."""
+        code = 'fn main() {\n    println!(\"hello\");\n}'
+        findings, _ = analyze_code(code, "rust")
+        rule_ids = [f.rule_id for f in findings]
+        assert "BUG008" in rule_ids
+
+    def test_maint004_todo_fires_rust(self):
+        """Test MAINT004: todo!() or unimplemented!() indicates unfinished implementation."""
+        code = 'fn main() {\n    todo!(not impl);\n}'
+        findings, _ = analyze_code(code, "rust")
+        rule_ids = [f.rule_id for f in findings]
+        assert "MAINT004" in rule_ids
+
+    def test_clean_rust_no_findings(self):
+        """Test that clean Rust code produces no findings."""
+        code = "fn safe() -> Result<i32, String> {\n    Ok(42)\n}"
+        findings, _ = analyze_code(code, "rust")
+        rule_ids = [f.rule_id for f in findings]
+        assert "SEC014" not in rule_ids
+        assert "SEC015" not in rule_ids
+        assert "BUG008" not in rule_ids
+        assert "MAINT004" not in rule_ids
+
 
 
 # ── 2. Database persistence tests ─────────────────────────────────────────────
