@@ -3,7 +3,7 @@
 > Work in progress. This checkpoint may be incomplete or fail tests. See PLAN.md and STATUS.md before use.
 
 
-Current version: `1.5.0`.
+Current version: `1.6.0`.
 
 Code Review AI helps developers triage risky source code and unified diffs. A deterministic Python AST and pattern engine produces line-level findings; optional LLM advice explains those findings. The React dashboard stores reviews, supports filtered history and JSON exports, and exposes a reproducible rule benchmark.
 
