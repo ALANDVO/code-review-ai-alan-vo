@@ -24,9 +24,11 @@
     {
       "id": "continue-implementation",
       "title": "Continue implementation and resolve known failures",
-      "status": "planned",
+      "status": "in_progress",
       "acceptance": [
-        "Run checks, fix failures, and implement the next planned feature"
+        "Run evaluation and verify Rust samples are processed correctly",
+        "Add targeted test for Rust evaluation pipeline integration",
+        "Update PLAN.md and STATUS.md with results"
       ],
       "implementation": [],
       "tests": []

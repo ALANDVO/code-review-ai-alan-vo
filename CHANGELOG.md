@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.7.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
+## [1.6.1] - unreleased
+
+### Added
+- Rust-specific static analysis rules and evaluation samples (continued):
+  - SEC014: `unwrap()` panic risk detection (high, security, CWE-248)
+  - SEC015: `expect()` with static message panic risk (high, security, CWE-248)
+  - BUG008: `println!()` macro in production code (low, bug)
+  - MAINT004: `todo!()` / `unimplemented!()` unfinished implementation (low, maintainability)
+- 7 Rust evaluation samples covering the new rules (RS-SEC-001 through RS-CLEAN-001)
+- Targeted test `test_rust_evaluation_integration` for evaluation pipeline verification
+
+### Changed
+- Updated `feature-plan.json` to track `continue-implementation` feature
+- Updated `PLAN.md` with completed/next feature status
+- Updated `STATUS.md` with checkpoint progress
+
+### Fixed
+- Fixed duplicate test function definition issue in `backend/tests/test_main.py`
+- Verified all 53 backend tests pass (including new Rust evaluation integration test)
+
 ## 1.6.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
