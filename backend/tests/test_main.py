@@ -747,3 +747,19 @@ def test_sarif_export_with_filters(client):
     assert len(sarif_data["runs"]) == 1
     assert sarif_data["runs"][0]["automationDetails"]["description"] == "JS review"
 
+
+def test_rust_evaluation_integration():
+    """Test that Rust evaluation samples are properly processed by the evaluation pipeline.
+    Verifies 7 Rust samples (RS-SEC-001 through RS-CLEAN-001) are present in the evaluation dataset.
+    """
+    from app.services.evaluator import run_evaluation
+    result = run_evaluation()
+    dr = result.get('details', {})
+    samples = dr.get('samples', [])
+    rust_samples = [s for s in samples if 'RS-' in s.get('sample_id', '')]
+    assert len(rust_samples) == 7, f"Expected 7 Rust samples, got {len(rust_samples)}"
+    # Verify sample IDs match expected Rust samples
+    rust_sample_ids = sorted([s['sample_id'] for s in rust_samples])
+    expected_ids = sorted(['RS-SEC-001', 'RS-SEC-002', 'RS-SEC-003', 'RS-BUG-001', 'RS-MAINT-001', 'RS-MAINT-002', 'RS-CLEAN-001'])
+    assert rust_sample_ids == expected_ids, f"Rust sample IDs mismatch:\n  got: {rust_sample_ids}\n  expected: {expected_ids}"
+    print(f"Verified {len(rust_samples)} Rust evaluation samples")
